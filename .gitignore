@@ -1,0 +1,4 @@
+*.pyc
+celerybeat-schedule.db
+__pycache__
+redis/data/

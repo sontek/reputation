@@ -1,0 +1,63 @@
+version: "3.9"
+services:
+  api:
+    build:
+      target: dev
+      context: ./api/
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./api/:/srv"
+      # this is to allow spinning up docker in tests
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DATABASE=0
+      - API_ORIGIN=localhost:8000
+      - DOCKER_HOST_OVERRIDE=host.docker.internal
+
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+  worker:
+    build:
+      target: dev
+      context: ./api/
+    volumes:
+      - "./api/:/srv"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DATABASE=0
+      - API_ORIGIN=api:8000
+      - DOCKER_HOST_OVERRIDE=host.docker.internal
+
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command: celery -A baddies.worker.app worker -l INFO
+
+  scheduler:
+    build:
+      target: dev
+      context: ./api/
+    volumes:
+      - "./api/:/srv"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DATABASE=0
+      - API_ORIGIN=api:8000
+      - DOCKER_HOST_OVERRIDE=host.docker.internal
+
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command: celery -A baddies.worker.app beat -l INFO
+
+  redis:
+    build:
+      context: ./redis/
+    ports:
+      - "6379:6379"
+    volumes:
+      - "./redis/data:/var/lib/redis/"
